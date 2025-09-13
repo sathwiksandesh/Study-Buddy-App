@@ -20,13 +20,28 @@ menu = st.sidebar.radio("Choose a feature:", [
 ])
 
 # Function: generate response from GPT
+import time
+
 def ask_gpt(prompt, model="gpt-4o-mini"):
-    response = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=500
-    )
-    return response.choices[0].message.content
+    retries = 3
+    for attempt in range(retries):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            error_message = str(e).lower()
+            if "rate limit" in error_message or "429" in error_message:
+                wait_time = (attempt + 1) * 5
+                st.warning(f"⚠️ Rate limit hit. Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+            else:
+                 return f"⚠️ Error: {str(e)}"
+    # Final fallback (so your app never crashes while recording)
+    return "🤖 (Demo Mode) This is a sample AI-generated response."
 
 # Function: export text to PDF
 def save_pdf(text, filename="study_notes.pdf"):
